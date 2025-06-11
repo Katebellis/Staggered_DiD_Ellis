@@ -1,0 +1,132 @@
+*Example Stata code for 'Investigating Impacts of Health Policies Using Staggered Difference-in-Differences: The Effects of Adoption of an Online Consultation System on Prescribing Patterns of Antibiotics'  (Ellis et al.)
+
+***************************************************************************************************************************************************************************************************************************************************
+*Variables:
+
+*y = outcome 
+
+*x1,x2,... = optional covariates 
+
+	*Can be time-varying or time-invariant. When estimating each post-treatment group-time average treatment effect (GTATT), we only make use of covariates for group g (who initiate treatment in t=g) and the ‘never treated’ in the time period just prior to treatment initiation (t=g-1). 	
+
+*id = unit identifier
+
+*period = time period (1,2,...)
+
+*group = 0 if never treated, otherwise the time period in which the unit first recieved treatment (e.g. 3 if recieved treatment in t=3)
+
+
+
+*Structure:
+
+*One row per unit per time period (long format).
+
+***************************************************************************************************************************************************************************************************************************************************
+*Callaway and Santanna's command:
+
+*Install
+ssc install drdid, all replace
+ssc install csdid, all replace
+
+*Run C&S command
+	*default is to use never-treated as control group
+	*dripw (default)  =   doubly robust DiD estimator
+
+csdid y x1 x2, ivar(id) time(period) gvar(group) method(dripw)
+
+ 
+
+*Get all aggregate estimates
+estat all
+
+*Get each GTATT
+estat attgt
+
+*****************************************************************************************************************************************************************************************************************************************************
+*Event-study plots
+
+*Include post treatment periods only
+	*Y is the maximum number of periods for which a treated unit was treated (in our paper this is 11)
+
+estat event, window(0 Y)
+csdid_plot, xtitle(Periods since treatment e) legend(off) graphregion(fcolor(white)) ylabel(,glcolor(gs14)) pstyle2(midgreen) color2(midgreen) color1(midgreen) ytitle("Average effect of having been treated e periods ago") plotregion(style(none))
+
+
+*Include pre-periods
+	*X is the maximum number of periods for which a treated unit was observed before treatment (in our paper this is 34)
+
+estat event, window(-X Y)
+csdid_plot, xtitle(Periods since treatment e) legend(off) graphregion(fcolor(white)) ylabel(,glcolor(gs14)) pstyle2(midgreen) color2(midgreen) color1(gs11) ytitle("Average effect of having been treated e periods ago") plotregion(style(none))
+
+
+*****************************************************************************************************************************************************************************************************************************************************
+*honestDID (Rambachan and Roth) approach for assessing impact of possible violations of conditional parallel trends
+*https://www.google.com/search?q=indicies&safe=active&sca_esv=e765034e5896bd97&ei=WfpJZ5TXKO6H7NYPvqCRyQo&ved=0ahUKEwjU56qCiYKKAxXuA9sEHT5QJKkQ4dUDCA8&oq=indicies&gs_lp=Egxnd3Mtd2l6LXNlcnAiCGluZGljaWVzMgoQABiABBixAxgKMgoQABiABBixAxgKMgoQABiABBixAxgKMgcQABiABBgKMgcQABiABBgKMgcQABiABBgKMgcQABiABBgKMgoQABiABBixAxgKMgcQABiABBgKMgcQABiABBgKSKMMUNgBWNgBcAF4AJABAJgBTKABTKoBATG4AQzIAQD4AQGYAgKgAlbCAhAQABiABBiwAxixAxhDGIoFwgINEAAYgAQYsAMYsQMYCsICChAAGIAEGLADGAqYAwCIBgGQBgqSBwEyoAfzBw&sclient=gws-wiz-serp
+
+
+*Install
+local github https://raw.githubusercontent.com
+net install honestdid, from(`github'/mcaceresb/stata-honestdid/main) replace
+honestdid _plugin_check
+local github https://raw.githubusercontent.com
+ssc install coefplot,      replace
+ssc install ftools,        replace
+ssc install reghdfe,       replace
+net install scheme-modern, replace from(`github'/mdroste/stata-scheme-modern/master)
+set scheme modern
+
+
+*Run C&S command and save event time estimates
+	*We now run csdid with long2 option that uses a universal base period (g-1) when estimating the GTATTs (this is required for honestDID - https://github.com/asheshrambachan/HonestDiD). Post treatment estimates are the same, but pre-treatment estimates will be different to those reported above without long2 option. 
+
+csdid y x1 x2, ivar(id) time(period) gvar(group) method(dripw) long2
+csdid_estat event, window(-X Y) estore(csdid)
+estimates restore csdid
+
+
+*Define vectors required below for running Rambachan and Roth approach for each event-study period 0-Y (where Y is the maximum number of periods for which a treated unit was treated)
+*e.g. for Y=11 as per our paper
+
+matrix vec_0=(1\0\0\0\0\0\0\0\0\0\0\0) 
+matrix vec_1=(0\1\0\0\0\0\0\0\0\0\0\0) 
+matrix vec_2=(0\0\1\0\0\0\0\0\0\0\0\0)
+matrix vec_3=(0\0\0\1\0\0\0\0\0\0\0\0) 
+matrix vec_4=(0\0\0\0\1\0\0\0\0\0\0\0) 
+matrix vec_5=(0\0\0\0\0\1\0\0\0\0\0\0) 
+matrix vec_6=(0\0\0\0\0\0\1\0\0\0\0\0) 
+matrix vec_7=(0\0\0\0\0\0\0\1\0\0\0\0) 
+matrix vec_8=(0\0\0\0\0\0\0\0\1\0\0\0) 
+matrix vec_9=(0\0\0\0\0\0\0\0\0\1\0\0) 
+matrix vec_10=(0\0\0\0\0\0\0\0\0\0\1\0) 
+matrix vec_11=(0\0\0\0\0\0\0\0\0\0\0\1)  
+
+*****************************************************************************************************************************************************************************************************************************************************
+*Relative magitude constraint
+
+*For each e in 0-Y, run the below line changing the vector in l_vec to the corrosponding vector defined above
+	*where a and b gives the first and last index of the coefficients corresponding with pre-treatment event-study coefficients in the stored results
+	*where c and d give the first and last index of the coeffcients corresponding with post-treatment event-study coefficients in the stored results
+	
+*runs through values 0 to e.g. 0.5 by e.g. 0.1 for M and prints CIs for each value of M.
+*The value of M for which the CI includes 0 is referred to as the breakdown value.
+*0.5 may need to be increased depending on magnitude of violations of parallel trends assumption in pre-periods, can also play around with increment (0.1)
+
+
+honestdid, pre(a/b) post(c/d) mvec(0(0.1)0.5) l_vec(vec_e) 
+
+*For our paper this was: honestdid, pre(3/34) post(35/46) mvec(0(0.1)0.5) l_vec(vec_e) corrosponding to the maximum observed 34 pre-treatment periods and 11 post-treatment periods
+
+
+************************************************************
+*Smoothness constraint
+
+*For each e in 0-Y, run the below line changing the vector in l_vec to the corrosponding vector defined above
+	*a,b,c,d as above
+	*0.1 & 0.5 can be changed as above
+
+honestdid, pre(a/b) post(c/d) mvec(0(0.1)0.5) l_vec(vec_e) delta(sd)
+
+*For our paper this was: honestdid, pre(3/34) post(35/46) mvec(0(0.1)0.5) l_vec(vec_e) delta(sd) corrosponding to the maximum observed 34 pre-treatment periods and 11 post-treatment periods
+
+
+*****************************************************************************************************************************************************************************************************************************************************
