@@ -114,7 +114,7 @@ matrix vec_11=(0\0\0\0\0\0\0\0\0\0\0\1)
 
 honestdid, pre(a/b) post(c/d) mvec(0(0.1)0.5) l_vec(vec_e) 
 
-*For our paper this was: honestdid, pre(3/34) post(35/46) mvec(0(0.1)0.5) l_vec(vec_e) corrosponding to the maximum observed 34 pre-treatment periods and 11 post-treatment periods
+*For our paper this was: honestdid, pre(3/34) post(35/46) mvec(0(0.001)0.5) l_vec(vec_e) corrosponding to the maximum observed 34 pre-treatment periods and 11 post-treatment periods
 
 
 ************************************************************
@@ -126,7 +126,7 @@ honestdid, pre(a/b) post(c/d) mvec(0(0.1)0.5) l_vec(vec_e)
 
 honestdid, pre(a/b) post(c/d) mvec(0(0.1)0.5) l_vec(vec_e) delta(sd)
 
-*For our paper this was: honestdid, pre(3/34) post(35/46) mvec(0(0.1)0.5) l_vec(vec_e) delta(sd) corrosponding to the maximum observed 34 pre-treatment periods and 11 post-treatment periods
+*For our paper this was: honestdid, pre(3/34) post(35/46) mvec(0(0.001)0.5) l_vec(vec_e) delta(sd) corrosponding to the maximum observed 34 pre-treatment periods and 11 post-treatment periods
 
 
 *****************************************************************************************************************************************************************************************************************************************************
